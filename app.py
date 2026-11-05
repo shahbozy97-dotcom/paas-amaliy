@@ -1,183 +1,407 @@
 
 import streamlit as st
-import random
+import streamlit.components.v1 as components
 
 st.set_page_config(
     page_title="Snake Game",
     page_icon="🐍",
-    layout="centered"
+    layout="wide"
 )
 
 st.markdown("""
 <style>
 .stApp {
-    background: linear-gradient(135deg, #101827, #183b35);
+    background: #0b1220;
 }
-h1 {
-    text-align: center;
-    color: #70ff9b;
+header, footer {
+    visibility: hidden;
 }
-div.stButton > button {
-    height: 55px;
-    font-size: 22px;
-    border-radius: 12px;
+.block-container {
+    padding-top: 1rem;
+    max-width: 1000px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1>🐍 SNAKE GAME</h1>", unsafe_allow_html=True)
-st.caption("Olmani yig‘ing va rekordni yangilang!")
+st.markdown("""
+<h1 style="text-align:center;color:#55f59a;">
+🐍 SNAKE ARENA
+</h1>
+<p style="text-align:center;color:#b8c7d9;">
+Olmalarni yig‘ing, rekordni yangilang!
+</p>
+""", unsafe_allow_html=True)
 
-SIZE = 10
+game_html = r"""
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    background: transparent;
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+}
+.panel {
+    max-width: 600px;
+    margin: auto;
+    padding: 15px;
+    background: #142238;
+    border: 1px solid #29425e;
+    border-radius: 20px;
+}
+.stats {
+    display: flex;
+    justify-content: space-around;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.stat {
+    flex: 1;
+    background: #0b1728;
+    border-radius: 12px;
+    padding: 12px;
+}
+.stat span {
+    display: block;
+    color: #8ca6c5;
+    font-size: 13px;
+}
+.stat b {
+    display: block;
+    color: #62f5a0;
+    font-size: 25px;
+    margin-top: 5px;
+}
+canvas {
+    width: 100%;
+    max-width: 480px;
+    aspect-ratio: 1;
+    background: #091522;
+    border: 3px solid #31516c;
+    border-radius: 12px;
+    display: block;
+    margin: auto;
+}
+.controls {
+    margin-top: 15px;
+    display: grid;
+    grid-template-columns: repeat(3, 65px);
+    justify-content: center;
+    gap: 7px;
+}
+button {
+    border: 0;
+    border-radius: 12px;
+    padding: 13px;
+    font-size: 19px;
+    font-weight: bold;
+    color: white;
+    background: #24506a;
+    cursor: pointer;
+}
+button:hover { background: #327c78; }
+.empty { visibility: hidden; }
+.actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+}
+.actions button {
+    font-size: 14px;
+    padding: 12px 18px;
+}
+.start { background: #16864e; }
+.pause { background: #a36b19; }
+.reset { background: #a33b4c; }
+.help {
+    color: #9db2c9;
+    font-size: 13px;
+    margin-top: 12px;
+}
+#message {
+    color: #66f3a0;
+    font-weight: bold;
+    min-height: 24px;
+    margin-top: 10px;
+}
+</style>
+</head>
+<body>
+<div class="panel">
+    <div class="stats">
+        <div class="stat">
+            <span>🍎 BALL</span>
+            <b id="score">0</b>
+        </div>
+        <div class="stat">
+            <span>🏆 REKORD</span>
+            <b id="best">0</b>
+        </div>
+        <div class="stat">
+            <span>⚡ TEZLIK</span>
+            <b id="speed">1</b>
+        </div>
+    </div>
 
-if "snake" not in st.session_state:
-    st.session_state.snake = [(5, 5), (5, 4), (5, 3)]
-    st.session_state.food = (2, 7)
-    st.session_state.score = 0
-    st.session_state.best = 0
-    st.session_state.over = False
-    st.session_state.direction = "RIGHT"
+    <canvas id="game" width="480" height="480"></canvas>
 
-def new_food(snake):
-    cells = [
-        (r, c)
-        for r in range(SIZE)
-        for c in range(SIZE)
-        if (r, c) not in snake
-    ]
-    return random.choice(cells) if cells else None
+    <div id="message">Boshlash tugmasini bosing!</div>
 
-def reset_game():
-    st.session_state.snake = [(5, 5), (5, 4), (5, 3)]
-    st.session_state.food = new_food(st.session_state.snake)
-    st.session_state.score = 0
-    st.session_state.over = False
-    st.session_state.direction = "RIGHT"
+    <div class="controls">
+        <button class="empty"> </button>
+        <button data-dir="up">⬆️</button>
+        <button class="empty"> </button>
+        <button data-dir="left">⬅️</button>
+        <button data-dir="down">⬇️</button>
+        <button data-dir="right">➡️</button>
+    </div>
 
-def move(direction):
-    if st.session_state.over:
-        return
+    <div class="actions">
+        <button class="start" id="start">▶ BOSHLASH</button>
+        <button class="pause" id="pause">⏸ PAUZA</button>
+        <button class="reset" id="reset">🔄 QAYTA</button>
+    </div>
 
-    snake = st.session_state.snake
-    head_r, head_c = snake[0]
+    <div class="help">
+        Klaviatura: ↑ ↓ ← → yoki W A S D<br>
+        Olmani yeng va devorga tegmang!
+    </div>
+</div>
 
-    directions = {
-        "UP": (-1, 0),
-        "DOWN": (1, 0),
-        "LEFT": (0, -1),
-        "RIGHT": (0, 1)
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const N = 20;
+const CELL = canvas.width / N;
+
+let snake, food, direction, nextDirection;
+let score = 0;
+let best = 0;
+let running = false;
+let gameOver = false;
+let timer = null;
+let speed = 150;
+
+const scoreEl = document.getElementById("score");
+const bestEl = document.getElementById("best");
+const speedEl = document.getElementById("speed");
+const message = document.getElementById("message");
+
+try {
+    best = Number(localStorage.getItem("snakeBest") || 0);
+} catch(e) {}
+bestEl.textContent = best;
+
+function reset() {
+    clearInterval(timer);
+    snake = [
+        {x: 10, y: 10},
+        {x: 9, y: 10},
+        {x: 8, y: 10}
+    ];
+    direction = "right";
+    nextDirection = "right";
+    score = 0;
+    speed = 150;
+    running = false;
+    gameOver = false;
+    placeFood();
+    updateStats();
+    message.textContent = "Boshlash tugmasini bosing!";
+    draw();
+}
+
+function placeFood() {
+    do {
+        food = {
+            x: Math.floor(Math.random() * N),
+            y: Math.floor(Math.random() * N)
+        };
+    } while (snake.some(p => p.x === food.x && p.y === food.y));
+}
+
+function updateStats() {
+    scoreEl.textContent = score;
+    bestEl.textContent = best;
+    speedEl.textContent = Math.max(1, Math.floor((150-speed)/15)+1);
+}
+
+function setDirection(d) {
+    const opposite = {
+        up: "down",
+        down: "up",
+        left: "right",
+        right: "left"
+    };
+    if (d !== opposite[direction]) {
+        nextDirection = d;
     }
+}
 
-    opposite = {
-        "UP": "DOWN",
-        "DOWN": "UP",
-        "LEFT": "RIGHT",
-        "RIGHT": "LEFT"
-    }
+function start() {
+    if (gameOver) reset();
+    if (running) return;
 
-    if direction == opposite[st.session_state.direction] and len(snake) > 1:
-        return
+    running = true;
+    message.textContent = "O‘yin boshlandi! Omad!";
+    clearInterval(timer);
+    timer = setInterval(tick, speed);
+}
 
-    st.session_state.direction = direction
-    dr, dc = directions[direction]
-    new_head = (head_r + dr, head_c + dc)
+function pause() {
+    if (!running) return;
+    running = false;
+    clearInterval(timer);
+    message.textContent = "⏸ O‘yin pauzada";
+}
 
-    ate = new_head == st.session_state.food
-    body = snake if ate else snake[:-1]
+function tick() {
+    direction = nextDirection;
+    const head = {...snake[0]};
+
+    if (direction === "up") head.y--;
+    if (direction === "down") head.y++;
+    if (direction === "left") head.x--;
+    if (direction === "right") head.x++;
+
+    const ate = head.x === food.x && head.y === food.y;
 
     if (
-        new_head[0] < 0 or new_head[0] >= SIZE
-        or new_head[1] < 0 or new_head[1] >= SIZE
-        or new_head in body
-    ):
-        st.session_state.over = True
-        st.session_state.best = max(
-            st.session_state.best,
-            st.session_state.score
-        )
-        return
+        head.x < 0 || head.x >= N ||
+        head.y < 0 || head.y >= N ||
+        snake.slice(0, ate ? snake.length : -1)
+             .some(p => p.x === head.x && p.y === head.y)
+    ) {
+        endGame();
+        return;
+    }
 
-    st.session_state.snake = [new_head] + body
+    snake.unshift(head);
 
-    if ate:
-        st.session_state.score += 1
-        st.session_state.best = max(
-            st.session_state.best,
-            st.session_state.score
-        )
-        st.session_state.food = new_food(st.session_state.snake)
+    if (ate) {
+        score++;
+        if (score > best) {
+            best = score;
+            try {
+                localStorage.setItem("snakeBest", best);
+            } catch(e) {}
+        }
+        placeFood();
 
-def draw_board():
-    snake = st.session_state.snake
-    food = st.session_state.food
+        const newSpeed = Math.max(65, 150 - score * 5);
+        if (newSpeed !== speed) {
+            speed = newSpeed;
+            clearInterval(timer);
+            timer = setInterval(tick, speed);
+        }
+    } else {
+        snake.pop();
+    }
 
-    board = []
-    for r in range(SIZE):
-        row = []
-        for c in range(SIZE):
-            pos = (r, c)
+    updateStats();
+    draw();
+}
 
-            if pos == snake[0]:
-                row.append("🟢")
-            elif pos in snake:
-                row.append("🟩")
-            elif pos == food:
-                row.append("🍎")
-            else:
-                row.append("⬛")
+function endGame() {
+    running = false;
+    gameOver = true;
+    clearInterval(timer);
+    message.textContent = "💀 O‘YIN TUGADI! Qayta boshlashni bosing.";
+    draw();
+}
 
-        board.append(row)
+function draw() {
+    ctx.fillStyle = "#091522";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    html = """
-    <div style="display:grid;grid-template-columns:repeat(10,1fr);
-    gap:3px;background:#0b1720;padding:8px;border-radius:12px;">
-    """
+    // Kataklar
+    ctx.strokeStyle = "#142b3c";
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= N; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * CELL, 0);
+        ctx.lineTo(i * CELL, canvas.height);
+        ctx.stroke();
 
-    for row in board:
-        for cell in row:
-            html += f"""
-            <div style="aspect-ratio:1;background:#1c3440;
-            display:flex;align-items:center;justify-content:center;
-            font-size:clamp(12px,3vw,22px);border-radius:4px;">
-            {cell}
-            </div>
-            """
+        ctx.beginPath();
+        ctx.moveTo(0, i * CELL);
+        ctx.lineTo(canvas.width, i * CELL);
+        ctx.stroke();
+    }
 
-    html += "</div>"
-    st.markdown(html, unsafe_allow_html=True)
+    // Olma
+    ctx.font = `${CELL * 0.8}px Arial`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(
+        "🍎",
+        food.x * CELL + CELL/2,
+        food.y * CELL + CELL/2
+    );
 
-col1, col2 = st.columns(2)
-col1.metric("🍎 Ball", st.session_state.score)
-col2.metric("🏆 Rekord", st.session_state.best)
+    // Ilon
+    snake.forEach((p, i) => {
+        const pad = 2;
+        ctx.fillStyle = i === 0 ? "#7dff9c" : "#21bd70";
+        ctx.beginPath();
+        ctx.roundRect(
+            p.x * CELL + pad,
+            p.y * CELL + pad,
+            CELL - pad*2,
+            CELL - pad*2,
+            6
+        );
+        ctx.fill();
+    });
 
-draw_board()
+    // O‘yin tugaganda qatlam
+    if (gameOver) {
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "white";
+        ctx.font = "bold 30px Arial";
+        ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2);
+    }
+}
 
-if st.session_state.over:
-    st.error("💀 O‘YIN TUGADI!")
-    st.warning(f"Sizning natijangiz: {st.session_state.score}")
+document.addEventListener("keydown", e => {
+    const keys = {
+        ArrowUp: "up", w: "up", W: "up",
+        ArrowDown: "down", s: "down", S: "down",
+        ArrowLeft: "left", a: "left", A: "left",
+        ArrowRight: "right", d: "right", D: "right"
+    };
 
-st.markdown("### 🎮 Boshqaruv")
+    if (keys[e.key]) {
+        e.preventDefault();
+        setDirection(keys[e.key]);
+    }
 
-up = st.columns([1, 1, 1])
-with up[1]:
-    if st.button("⬆️", use_container_width=True):
-        move("UP")
+    if (e.key === " " && running) pause();
+    else if (e.key === " " && !running && !gameOver) start();
+});
 
-left, center, right = st.columns(3)
+document.querySelectorAll("[data-dir]").forEach(btn => {
+    btn.addEventListener("click", () => {
+        setDirection(btn.dataset.dir);
+    });
+});
 
-with left:
-    if st.button("⬅️", use_container_width=True):
-        move("LEFT")
+document.getElementById("start").addEventListener("click", start);
+document.getElementById("pause").addEventListener("click", pause);
+document.getElementById("reset").addEventListener("click", reset);
 
-with center:
-    if st.button("⬇️", use_container_width=True):
-        move("DOWN")
+reset();
+</script>
+</body>
+</html>
+"""
 
-with right:
-    if st.button("➡️", use_container_width=True):
-        move("RIGHT")
-
-if st.button("🔄 QAYTA BOSHLASH", use_container_width=True):
-    reset_game()
-
-st.caption("Ilonni tugmalar yordamida harakatlantiring.")
+components.html(game_html, height=790, scrolling=False)
