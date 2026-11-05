@@ -1,32 +1,51 @@
 import streamlit as st
+import time
+from datetime import datetime
 
-st.title("Bulutli kalkulyator")
-
-a = st.number_input("Birinchi son", value=0)
-b = st.number_input("Ikkinchi son", value=0)
-
-amal = st.selectbox(
-    "Amalni tanlang",
-    ["Qo'shish", "Ayirish", "Ko'paytirish", "Bo'lish"]
+st.set_page_config(
+    page_title="Digital Clock",
+    page_icon="🕒",
+    layout="centered"
 )
 
-if st.button("Hisoblash"):
+st.markdown("""
+<style>
+.stApp {
+    background: linear-gradient(135deg, #10172a, #253b65);
+}
+.clock {
+    text-align: center;
+    color: white;
+    padding: 45px 10px;
+    border-radius: 25px;
+    background: rgba(255,255,255,0.08);
+    margin-top: 50px;
+}
+.time {
+    font-size: 75px;
+    font-weight: bold;
+    color: #65e6ff;
+}
+.date {
+    font-size: 24px;
+    color: white;
+}
+</style>
+""", unsafe_allow_html=True)
 
-    if amal == "Qo'shish":
-        natija = a + b
-        st.success(f"Natija: {natija}")
+st.markdown("<h1 style='text-align:center;color:white'>🕒 DIGITAL CLOCK</h1>", unsafe_allow_html=True)
 
-    elif amal == "Ayirish":
-        natija = a - b
-        st.success(f"Natija: {natija}")
+clock = st.empty()
 
-    elif amal == "Ko'paytirish":
-        natija = a * b
-        st.success(f"Natija: {natija}")
+while True:
+    now = datetime.now()
 
-    elif amal == "Bo'lish":
-        if b != 0:
-            natija = a / b
-            st.success(f"Natija: {natija}")
-        else:
-            st.warning("Sonni nolga bo'lish mumkin emas!")
+    clock.markdown(f"""
+    <div class="clock">
+        <div class="time">{now.strftime("%H:%M:%S")}</div>
+        <div class="date">{now.strftime("%d-%m-%Y")}</div>
+        <div class="date">{now.strftime("%A")}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    time.sleep(1)
