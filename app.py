@@ -1,16 +1,13 @@
 import streamlit as st
 
-st.title("PaaS bulutli ilovasi")
+st.title("Bulutli kalkulyator")
 
-st.header("Talaba ma'lumotlari")
+st.header("Ikki son yig'indisini hisoblash")
 
-ism = st.text_input("Ismingizni kiriting")
+a = st.number_input("Birinchi son", value=0)
 
-guruh = st.text_input("Guruhingizni kiriting")
+b = st.number_input("Ikkinchi son", value=0)
 
-if st.button("Natijani ko'rsatish"):
-    if ism.strip() and guruh.strip():
-        st.success(f"Salom, {ism}!")
-        st.write(f"Guruhingiz: {guruh}")
-    else:
-        st.warning("Barcha maydonlarni to'ldiring")
+if st.button("Hisoblash"):
+    natija = a + b
+    st.success(f"Yig'indi: {natija}")
