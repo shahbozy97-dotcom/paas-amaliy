@@ -3,7 +3,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 st.set_page_config(
-    page_title="Snake Game",
+    page_title="Snake Arena",
     page_icon="🐍",
     layout="wide"
 )
@@ -24,11 +24,9 @@ header, footer {
 """, unsafe_allow_html=True)
 
 st.markdown("""
-<h1 style="text-align:center;color:#55f59a;">
-🐍 SNAKE ARENA
-</h1>
+<h1 style="text-align:center;color:#55f59a;">🐍 SNAKE ARENA</h1>
 <p style="text-align:center;color:#b8c7d9;">
-Olmalarni yig‘ing, rekordni yangilang!
+Olmalarni yig‘ing va rekordni yangilang!
 </p>
 """, unsafe_allow_html=True)
 
@@ -38,103 +36,107 @@ game_html = r"""
 <head>
 <meta charset="UTF-8">
 <style>
-* { box-sizing: border-box; }
+* {box-sizing:border-box}
 body {
-    margin: 0;
-    background: transparent;
-    color: white;
-    font-family: Arial, sans-serif;
-    text-align: center;
+    margin:0;
+    background:transparent;
+    color:white;
+    font-family:Arial,sans-serif;
+    text-align:center;
 }
 .panel {
-    max-width: 600px;
-    margin: auto;
-    padding: 15px;
-    background: #142238;
-    border: 1px solid #29425e;
-    border-radius: 20px;
+    max-width:600px;
+    margin:auto;
+    padding:15px;
+    background:#142238;
+    border:1px solid #29425e;
+    border-radius:20px;
 }
 .stats {
-    display: flex;
-    justify-content: space-around;
-    gap: 10px;
-    margin-bottom: 14px;
+    display:flex;
+    justify-content:space-around;
+    gap:10px;
+    margin-bottom:14px;
 }
 .stat {
-    flex: 1;
-    background: #0b1728;
-    border-radius: 12px;
-    padding: 12px;
+    flex:1;
+    background:#0b1728;
+    border-radius:12px;
+    padding:12px;
 }
 .stat span {
-    display: block;
-    color: #8ca6c5;
-    font-size: 13px;
+    display:block;
+    color:#8ca6c5;
+    font-size:13px;
 }
 .stat b {
-    display: block;
-    color: #62f5a0;
-    font-size: 25px;
-    margin-top: 5px;
+    display:block;
+    color:#62f5a0;
+    font-size:25px;
+    margin-top:5px;
 }
 canvas {
-    width: 100%;
-    max-width: 480px;
-    aspect-ratio: 1;
-    background: #091522;
-    border: 3px solid #31516c;
-    border-radius: 12px;
-    display: block;
-    margin: auto;
+    width:100%;
+    max-width:480px;
+    aspect-ratio:1;
+    background:#091522;
+    border:3px solid #31516c;
+    border-radius:12px;
+    display:block;
+    margin:auto;
+    touch-action:none;
 }
 .controls {
-    margin-top: 15px;
-    display: grid;
-    grid-template-columns: repeat(3, 65px);
-    justify-content: center;
-    gap: 7px;
+    margin-top:15px;
+    display:grid;
+    grid-template-columns:repeat(3,65px);
+    justify-content:center;
+    gap:7px;
 }
 button {
-    border: 0;
-    border-radius: 12px;
-    padding: 13px;
-    font-size: 19px;
-    font-weight: bold;
-    color: white;
-    background: #24506a;
-    cursor: pointer;
+    border:0;
+    border-radius:12px;
+    padding:13px;
+    font-size:19px;
+    font-weight:bold;
+    color:white;
+    background:#24506a;
+    cursor:pointer;
+    touch-action:manipulation;
 }
-button:hover { background: #327c78; }
-.empty { visibility: hidden; }
+button:hover {background:#327c78}
+.empty {visibility:hidden}
 .actions {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-top: 14px;
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:14px;
 }
 .actions button {
-    font-size: 14px;
-    padding: 12px 18px;
+    font-size:14px;
+    padding:12px 18px;
 }
-.start { background: #16864e; }
-.pause { background: #a36b19; }
-.reset { background: #a33b4c; }
+.start {background:#16864e}
+.pause {background:#a36b19}
+.reset {background:#a33b4c}
 .help {
-    color: #9db2c9;
-    font-size: 13px;
-    margin-top: 12px;
+    color:#9db2c9;
+    font-size:13px;
+    margin-top:12px;
 }
 #message {
-    color: #66f3a0;
-    font-weight: bold;
-    min-height: 24px;
-    margin-top: 10px;
+    color:#66f3a0;
+    font-weight:bold;
+    min-height:24px;
+    margin-top:10px;
 }
 </style>
 </head>
 <body>
+
 <div class="panel">
+
     <div class="stats">
         <div class="stat">
             <span>🍎 BALL</span>
@@ -178,16 +180,25 @@ button:hover { background: #327c78; }
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
+
 const N = 20;
 const CELL = canvas.width / N;
 
-let snake, food, direction, nextDirection;
+let snake = [];
+let food = {};
+let direction = "right";
+let nextDirection = "right";
+
 let score = 0;
 let best = 0;
 let running = false;
 let gameOver = false;
 let timer = null;
-let speed = 150;
+
+// Sekin boshlanadi: 300 ms
+const START_SPEED = 300;
+const MIN_SPEED = 220;
+let speed = START_SPEED;
 
 const scoreEl = document.getElementById("score");
 const bestEl = document.getElementById("best");
@@ -196,50 +207,66 @@ const message = document.getElementById("message");
 
 try {
     best = Number(localStorage.getItem("snakeBest") || 0);
-} catch(e) {}
+} catch(e) {
+    best = 0;
+}
+
 bestEl.textContent = best;
-
-function reset() {
-    clearInterval(timer);
-    snake = [
-        {x: 10, y: 10},
-        {x: 9, y: 10},
-        {x: 8, y: 10}
-    ];
-    direction = "right";
-    nextDirection = "right";
-    score = 0;
-    speed = 150;
-    running = false;
-    gameOver = false;
-    placeFood();
-    updateStats();
-    message.textContent = "Boshlash tugmasini bosing!";
-    draw();
-}
-
-function placeFood() {
-    do {
-        food = {
-            x: Math.floor(Math.random() * N),
-            y: Math.floor(Math.random() * N)
-        };
-    } while (snake.some(p => p.x === food.x && p.y === food.y));
-}
 
 function updateStats() {
     scoreEl.textContent = score;
     bestEl.textContent = best;
-    speedEl.textContent = Math.max(1, Math.floor((150-speed)/15)+1);
+    speedEl.textContent =
+        Math.floor((START_SPEED - speed) / 10) + 1;
+}
+
+function placeFood() {
+    const free = [];
+
+    for (let y = 0; y < N; y++) {
+        for (let x = 0; x < N; x++) {
+            if (!snake.some(p => p.x === x && p.y === y)) {
+                free.push({x, y});
+            }
+        }
+    }
+
+    food = free.length
+        ? free[Math.floor(Math.random() * free.length)]
+        : null;
+}
+
+function reset() {
+    clearInterval(timer);
+
+    snake = [
+        {x:10,y:10},
+        {x:9,y:10},
+        {x:8,y:10}
+    ];
+
+    direction = "right";
+    nextDirection = "right";
+    score = 0;
+    speed = START_SPEED;
+    running = false;
+    gameOver = false;
+
+    placeFood();
+    updateStats();
+
+    message.textContent = "Boshlash tugmasini bosing!";
+    draw();
 }
 
 function setDirection(d) {
     const opposite = {
-        up: "down",
-        down: "up",
-        left: "right",
-        right: "left"
+        up:"down",
+        down:"up",
+        left:"right",
+        right:"left"
     };
+
     if (d !== opposite[direction]) {
         nextDirection = d;
     }
@@ -251,12 +278,14 @@ function start() {
 
     running = true;
     message.textContent = "O‘yin boshlandi! Omad!";
+
     clearInterval(timer);
     timer = setInterval(tick, speed);
 }
 
 function pause() {
     if (!running) return;
+
     running = false;
     clearInterval(timer);
     message.textContent = "⏸ O‘yin pauzada";
@@ -264,6 +293,7 @@ function pause() {
 
 function tick() {
     direction = nextDirection;
+
     const head = {...snake[0]};
 
     if (direction === "up") head.y--;
@@ -271,13 +301,16 @@ function tick() {
     if (direction === "left") head.x--;
     if (direction === "right") head.x++;
 
-    const ate = head.x === food.x && head.y === food.y;
+    const ate = food &&
+        head.x === food.x &&
+        head.y === food.y;
+
+    const collisionBody = ate ? snake : snake.slice(0, -1);
 
     if (
         head.x < 0 || head.x >= N ||
         head.y < 0 || head.y >= N ||
-        snake.slice(0, ate ? snake.length : -1)
-             .some(p => p.x === head.x && p.y === head.y)
+        collisionBody.some(p => p.x === head.x && p.y === head.y)
     ) {
         endGame();
         return;
@@ -287,19 +320,32 @@ function tick() {
 
     if (ate) {
         score++;
+
         if (score > best) {
             best = score;
             try {
                 localStorage.setItem("snakeBest", best);
             } catch(e) {}
         }
+
         placeFood();
 
-        const newSpeed = Math.max(65, 150 - score * 5);
+        // Har bir olma bilan juda oz tezlashadi
+        const newSpeed = Math.max(
+            MIN_SPEED,
+            START_SPEED - score * 3
+        );
+
         if (newSpeed !== speed) {
             speed = newSpeed;
             clearInterval(timer);
             timer = setInterval(tick, speed);
+        }
+
+        if (!food) {
+            running = false;
+            clearInterval(timer);
+            message.textContent = "🏆 G‘ALABA! Barcha olmalarni yig‘dingiz!";
         }
     } else {
         snake.pop();
@@ -313,7 +359,10 @@ function endGame() {
     running = false;
     gameOver = true;
     clearInterval(timer);
-    message.textContent = "💀 O‘YIN TUGADI! Qayta boshlashni bosing.";
+
+    message.textContent =
+        "💀 O‘YIN TUGADI! Qayta boshlashni bosing.";
+
     draw();
 }
 
@@ -321,9 +370,9 @@ function draw() {
     ctx.fillStyle = "#091522";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Kataklar
     ctx.strokeStyle = "#142b3c";
     ctx.lineWidth = 1;
+
     for (let i = 0; i <= N; i++) {
         ctx.beginPath();
         ctx.moveTo(i * CELL, 0);
@@ -336,47 +385,63 @@ function draw() {
         ctx.stroke();
     }
 
-    // Olma
-    ctx.font = `${CELL * 0.8}px Arial`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(
-        "🍎",
-        food.x * CELL + CELL/2,
-        food.y * CELL + CELL/2
-    );
+    if (food) {
+        ctx.font = `${CELL * 0.8}px Arial`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
 
-    // Ilon
+        ctx.fillText(
+            "🍎",
+            food.x * CELL + CELL/2,
+            food.y * CELL + CELL/2
+        );
+    }
+
     snake.forEach((p, i) => {
         const pad = 2;
-        ctx.fillStyle = i === 0 ? "#7dff9c" : "#21bd70";
+
+        ctx.fillStyle = i === 0
+            ? "#7dff9c"
+            : "#21bd70";
+
         ctx.beginPath();
         ctx.roundRect(
             p.x * CELL + pad,
             p.y * CELL + pad,
-            CELL - pad*2,
-            CELL - pad*2,
+            CELL - pad * 2,
+            CELL - pad * 2,
             6
         );
         ctx.fill();
     });
 
-    // O‘yin tugaganda qatlam
     if (gameOver) {
         ctx.fillStyle = "rgba(0,0,0,0.55)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+
         ctx.fillStyle = "white";
         ctx.font = "bold 30px Arial";
-        ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2);
+        ctx.textAlign = "center";
+
+        ctx.fillText(
+            "GAME OVER",
+            canvas.width/2,
+            canvas.height/2
+        );
     }
 }
 
+// Klaviatura boshqaruvi
 document.addEventListener("keydown", e => {
     const keys = {
-        ArrowUp: "up", w: "up", W: "up",
-        ArrowDown: "down", s: "down", S: "down",
-        ArrowLeft: "left", a: "left", A: "left",
-        ArrowRight: "right", d: "right", D: "right"
+        ArrowUp:"up",
+        ArrowDown:"down",
+        ArrowLeft:"left",
+        ArrowRight:"right",
+        w:"up", W:"up",
+        s:"down", S:"down",
+        a:"left", A:"left",
+        d:"right", D:"right"
     };
 
     if (keys[e.key]) {
@@ -384,10 +449,16 @@ document.addEventListener("keydown", e => {
         setDirection(keys[e.key]);
     }
 
-    if (e.key === " " && running) pause();
-    else if (e.key === " " && !running && !gameOver) start();
+    if (e.key === " " && running) {
+        e.preventDefault();
+        pause();
+    } else if (e.key === " " && !running && !gameOver) {
+        e.preventDefault();
+        start();
+    }
 });
 
+// Ekrandagi boshqaruv tugmalari
 document.querySelectorAll("[data-dir]").forEach(btn => {
     btn.addEventListener("click", () => {
         setDirection(btn.dataset.dir);
